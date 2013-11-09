@@ -8,8 +8,8 @@ public class Turret : MonoBehaviour
 
 	void Start()
 	{
-		bulletPrefab.CreatePool();
-		bulletPrefab.explosionPrefab.CreatePool();
+		bulletPrefab.CreatePool(10);
+		bulletPrefab.explosionPrefab.CreatePool(10);
 	}
 
 	void Update()
