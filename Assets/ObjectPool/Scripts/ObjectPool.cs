@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public sealed class ObjectPool : MonoBehaviour
 {
@@ -17,8 +18,21 @@ public sealed class ObjectPool : MonoBehaviour
 
 	public static void CreatePool<T>(T prefab) where T : Component
 	{
+		CreatePool(prefab, 0);
+	}
+
+	public static void CreatePool<T>(T prefab, int initialAmount) where T : Component
+	{
 		if (!instance.objectLookup.ContainsKey(prefab))
 			instance.objectLookup.Add(prefab, new List<Component>());
+
+		if(initialAmount > 0)
+		{
+			for(int i = 0; i < initialAmount; i++)
+				Spawn(prefab);
+
+			RecycleAll(prefab);
+		}
 	}
 	
 	public static T Spawn<T>(T prefab, Vector3 position, Quaternion rotation) where T : Component
@@ -74,6 +88,14 @@ public sealed class ObjectPool : MonoBehaviour
 			Object.Destroy(obj.gameObject);
 	}
 
+	public static void RecycleAll<T>(T obj) where T : Component
+	{
+		var active = instance.prefabLookup.Keys.Where(p => p.GetType() == typeof(T)).ToList();
+
+		for(int i = 0; i < active.Count; i++)
+			Recycle(active[i]);
+	}
+
 	public static int Count<T>(T prefab) where T : Component
 	{
 		if (instance.objectLookup.ContainsKey(prefab))
@@ -102,7 +124,12 @@ public static class ObjectPoolExtensions
 	{
 		ObjectPool.CreatePool(prefab);
 	}
-	
+
+	public static void CreatePool<T>(this T prefab, int initialAmount) where T : Component
+	{
+		ObjectPool.CreatePool(prefab, initialAmount);
+	}
+
 	public static T Spawn<T>(this T prefab, Vector3 position, Quaternion rotation) where T : Component
 	{
 		return ObjectPool.Spawn(prefab, position, rotation);
@@ -115,10 +142,15 @@ public static class ObjectPoolExtensions
 	{
 		return ObjectPool.Spawn(prefab, Vector3.zero, Quaternion.identity);
 	}
-	
+
 	public static void Recycle<T>(this T obj) where T : Component
 	{
 		ObjectPool.Recycle(obj);
+	}
+
+	public static void RecycleAll<T>(this T obj) where T : Component
+	{
+		ObjectPool.RecycleAll(obj);
 	}
 
 	public static int Count<T>(T prefab) where T : Component
