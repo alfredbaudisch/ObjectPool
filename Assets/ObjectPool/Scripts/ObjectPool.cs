@@ -27,12 +27,8 @@ public sealed class ObjectPool : MonoBehaviour
 			instance.objectLookup.Add(prefab, new List<Component>());
 
 		if(initialAmount > 0)
-		{
 			for(int i = 0; i < initialAmount; i++)
-				Spawn(prefab);
-
-			RecycleAll(prefab);
-		}
+				SpawnInactive(prefab);
 	}
 	
 	public static T Spawn<T>(T prefab, Vector3 position, Quaternion rotation) where T : Component
@@ -58,6 +54,7 @@ public sealed class ObjectPool : MonoBehaviour
 					return (T)obj;
 				}
 			}
+
 			obj = (T)Object.Instantiate(prefab, position, rotation);
 			instance.prefabLookup.Add(obj, prefab);
 			return (T)obj;
@@ -74,15 +71,28 @@ public sealed class ObjectPool : MonoBehaviour
 		return Spawn(prefab, Vector3.zero, Quaternion.identity);
 	}
 
+	public static T SpawnInactive<T>(T prefab) where T : Component
+	{
+		if (!instance.objectLookup.ContainsKey(prefab))
+			instance.objectLookup.Add(prefab, new List<Component>());
+
+		var obj = (T)Object.Instantiate(prefab, Vector3.zero, Quaternion.identity);
+		obj.transform.parent = instance.transform;
+		obj.gameObject.SetActive(false);
+
+		instance.objectLookup[prefab].Add(obj);
+
+		return (T)obj;
+	} 
+
 	public static void Recycle<T>(T obj) where T : Component
 	{
-		if (instance.prefabLookup.ContainsKey(obj))
+		if(instance.prefabLookup.ContainsKey(obj))
 		{
 			instance.objectLookup[instance.prefabLookup[obj]].Add(obj);
 			instance.prefabLookup.Remove(obj);
 			obj.transform.parent = instance.transform;
 			obj.gameObject.SetActive(false);
-
 		}
 		else
 			Object.Destroy(obj.gameObject);
@@ -92,8 +102,9 @@ public sealed class ObjectPool : MonoBehaviour
 	{
 		var active = instance.prefabLookup.Keys.Where(p => p.GetType() == typeof(T)).ToList();
 
-		for(int i = 0; i < active.Count; i++)
-			Recycle(active[i]);
+		if(active.Count > 0)
+			for(int i = 0; i < active.Count; i++)
+				Recycle(active[i]);
 	}
 
 	public static List<T> GetAllOfType<T>() where T : Component
@@ -145,7 +156,7 @@ public static class ObjectPoolExtensions
 	{
 		ObjectPool.CreatePool(prefab, initialAmount);
 	}
-
+	
 	public static T Spawn<T>(this T prefab, Vector3 position, Quaternion rotation) where T : Component
 	{
 		return ObjectPool.Spawn(prefab, position, rotation);
@@ -159,6 +170,11 @@ public static class ObjectPoolExtensions
 		return ObjectPool.Spawn(prefab, Vector3.zero, Quaternion.identity);
 	}
 
+	public static T SpawnInactive<T>(this T prefab) where T : Component
+	{
+		return ObjectPool.SpawnInactive(prefab);
+	}
+	
 	public static void Recycle<T>(this T obj) where T : Component
 	{
 		ObjectPool.Recycle(obj);
