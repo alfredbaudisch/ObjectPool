@@ -96,6 +96,22 @@ public sealed class ObjectPool : MonoBehaviour
 			Recycle(active[i]);
 	}
 
+	public static List<T> GetAllOfType<T>() where T : Component
+	{
+		var keys = instance.objectLookup.Keys.Where(p => p.GetType() == typeof(T)).ToList();
+
+		List<T> objects = new List<T>();
+
+		if(keys.Count > 0)			
+			foreach(var key in keys)
+				if(instance.objectLookup[key].Count > 0)
+					foreach(var obj in instance.objectLookup[key]) 
+						objects.Add(obj as T);
+
+
+		return objects;
+	}
+
 	public static int Count<T>(T prefab) where T : Component
 	{
 		if (instance.objectLookup.ContainsKey(prefab))
@@ -151,6 +167,11 @@ public static class ObjectPoolExtensions
 	public static void RecycleAll<T>(this T obj) where T : Component
 	{
 		ObjectPool.RecycleAll(obj);
+	}
+
+	public static List<T> GetAllOfType<T>(this T prefab) where T : Component
+	{
+		return ObjectPool.GetAllOfType<T>();
 	}
 
 	public static int Count<T>(T prefab) where T : Component
